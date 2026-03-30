@@ -45,6 +45,12 @@ void free_char_pointer_list(char **ptr_list[], size_t len) {
 }
 
 void execv_cpp_wrapper(const std::string executable, const std::vector<std::string> &args) {
+    std::cout << "Executing executable: \"" << executable << "\"" << std::endl;
+    std::cout << "Arguments: ";
+    for (int i = 0; i < args.size(); i++) {
+        std::cout << "\"" << args[i] << "\" ";
+    }
+    std::cout << std::endl;
     char **args_to_syscall;
 
     if (args.size() == 0) {
@@ -52,7 +58,17 @@ void execv_cpp_wrapper(const std::string executable, const std::vector<std::stri
         return;
     }
     vector_to_null_term_char_pointer_list(args, &args_to_syscall);
-    execv(executable.c_str(), args_to_syscall);
+    pid_t child_pid = fork();
+    if (child_pid == -1) {
+        std::cerr << "Failed to fork" << std::endl;
+        return;
+    }
+    if (child_pid == 0) {
+        execv(executable.c_str(), args_to_syscall);
+        std::cerr << "Failed to execute executable: \"" << executable << "\"" << std::endl;
+        return;
+    }
+    wait(NULL);
     free_char_pointer_list(&args_to_syscall, args.size() + 1);
 }
 
@@ -135,13 +151,13 @@ void split_string(const std::string &str, std::vector<std::string> &vec, char de
     // Sanitize delimit first if there are consecutive deliminators occasion
     std::string sanitized_str;
     strip(str, sanitized_str, delim);
-    size_t begin_substr;
+    size_t begin_substr = 0;
     size_t next_delim_pos = sanitized_str.find(delim);
     do {
         std::string sub_str = sanitized_str.substr(begin_substr, next_delim_pos - begin_substr);
         vec.push_back(sub_str);
         begin_substr = next_delim_pos + 1;
-        next_delim_pos = sanitized_str.find(delim);
+        next_delim_pos = sanitized_str.find(delim, begin_substr);
     } while(next_delim_pos != std::string::npos);
     if (begin_substr < sanitized_str.length()) {
         std::string sub_str = sanitized_str.substr(begin_substr, sanitized_str.length() - begin_substr);
@@ -189,14 +205,19 @@ void run_interactive_mode() {
     while (true) {
         std::string command_buff;
         std::cout << red_color_code << username << " " << yellow_color_code << host_name << white_color_code << " < ";
-        std::cin >> command_buff;
+        std::getline(std::cin, command_buff);
         std::cout << "Receive user input \"" << command_buff << "\"" << std::endl;
         std::string executable = command_buff.substr(0, command_buff.find(" "));
+        std::cout << "Executable: \"" << executable << "\"" << std::endl;
         std::vector<std::string> command_args;
+        std::string absolute_executable_path;
+        absolute_executable_path = resolve_complete_execute_path(executable);
+        if (absolute_executable_path.length() == 0) {
+            std::cerr << "No such file found \"" << executable << "\"" << std::endl;
+            continue;
+        }
         split_string(command_buff, command_args, ' ');
-        std::cout << "Executable: \"" << command_args[0] << "\"" << std::endl;
-        debug_vector(command_args);
-        
+        execv_cpp_wrapper(absolute_executable_path, command_args);
     }
 }
 
