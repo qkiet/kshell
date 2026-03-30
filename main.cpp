@@ -11,12 +11,19 @@
 
 void split_string(const std::string &str, std::vector<std::string> &vec, char delim = ' ');
 
+struct CommandLineOptions {
+    bool interactive_mode = true;
+    std::vector<std::string> command_args;
+    std::string sub_command;
+};
+
 
 void debug_vector(const std::vector<std::string> &vec) {
     for (int i = 0; i < vec.size(); i++) {
         std::cout << "Vector " << i << " is " << vec[i] << std::endl;
     }
 }
+
 
 void char_point_list_to_vector(const char ***ptr_list, size_t len, std::vector<std::string> &vec) {
     if (len == 0) {
@@ -26,6 +33,7 @@ void char_point_list_to_vector(const char ***ptr_list, size_t len, std::vector<s
         vec.push_back(std::string((*ptr_list)[i]));
     }
 }
+
 
 void vector_to_null_term_char_pointer_list(const std::vector<std::string> &vec, char ***ptr_list) {
     *ptr_list = (char**) malloc(vec.size() + 1);
@@ -37,12 +45,14 @@ void vector_to_null_term_char_pointer_list(const std::vector<std::string> &vec, 
     (*ptr_list)[vec.size()] = nullptr;
 }
 
+
 void free_char_pointer_list(char **ptr_list[], size_t len) {
     for (int i = 0; i < len; i++) {
         free((*ptr_list)[i]);
     }
     free(*ptr_list);
 }
+
 
 void execv_cpp_wrapper(const std::string executable, const std::vector<std::string> &args) {
     std::cout << "Executing executable: \"" << executable << "\"" << std::endl;
@@ -72,6 +82,7 @@ void execv_cpp_wrapper(const std::string executable, const std::vector<std::stri
     free_char_pointer_list(&args_to_syscall, args.size() + 1);
 }
 
+
 std::string resolve_complete_execute_path(const std::string &input_executable_path) {
     if (std::filesystem::exists(input_executable_path)) {
         std::cout << "Already found executable path!" << std::endl;
@@ -95,6 +106,7 @@ std::string resolve_complete_execute_path(const std::string &input_executable_pa
     }
     return std::string();
 }
+
 
 void strip(const std::string &src, std::string &dst, char delim) {
     // Let's copy dst to src first
@@ -143,6 +155,7 @@ void strip(const std::string &src, std::string &dst, char delim) {
     }
 }
 
+
 void split_string(const std::string &str, std::vector<std::string> &vec, char delim) {
     if (str.find(delim) == std::string::npos) {
         vec.push_back(str);
@@ -164,6 +177,7 @@ void split_string(const std::string &str, std::vector<std::string> &vec, char de
         vec.push_back(sub_str);
     }
 }
+
 
 void run_interactive_mode() {
      // Find host name first
@@ -222,31 +236,45 @@ void run_interactive_mode() {
 }
 
 
+void run_sub_command(const CommandLineOptions &options) {
+    auto executable = options.sub_command.substr(0, options.sub_command.find(" "));
+    auto absolute_executable_path = resolve_complete_execute_path(executable);
+    if (absolute_executable_path.length() == 0) {
+        std::cerr << "No such executable file found \"" << executable << "\"" << std::endl;
+        exit(ENOENT);
+    }
+    std::vector<std::string> command_args;
+    split_string(options.sub_command, command_args, ' ');
+    execv_cpp_wrapper(absolute_executable_path, command_args);
+}
+
+
+void parse_command_line_arguments(int argc, char* argv[], CommandLineOptions &options) {
+    for (int i = 1; i < argc;) {
+        if (std::string(argv[i]) == "-c") {
+            options.interactive_mode = false;
+            if (i + 1 >= argc) {
+                std::cerr << "No sub command found after -c" << std::endl;
+                exit(EINVAL);
+            }
+            if (argv[i + 1][0] == '-') {
+                std::cerr << "Invalid sub command: \"" << argv[i + 1] << "\"" << std::endl;
+                exit(EINVAL);
+            }
+            options.sub_command = std::string(argv[i + 1]);
+            i += 2;
+            continue;
+        }
+    }
+}
 
 int main(int argc, char* argv[]) {
-    if (argc == 1) {
+    CommandLineOptions options;
+    parse_command_line_arguments(argc, argv, options);
+    if (options.interactive_mode) {
         run_interactive_mode();
         // It should not reach here
     }
-    auto executable_path = std::string(argv[1]);
-    auto absolute_executable_path = resolve_complete_execute_path(executable_path);
-    if (absolute_executable_path.length() == 0) {
-        std::cerr << "No such file found \"" << executable_path << "\"" << std::endl;
-        return ENOENT;
-    }
-
-    std::vector<std::string> command_args;
-    char **ptr_to_second_args = &argv[1];
-    char_point_list_to_vector((const char ***)&ptr_to_second_args, argc - 1, command_args);
-    execv_cpp_wrapper(absolute_executable_path, command_args);
-
-    wait(NULL);
-
+    run_sub_command(options);
     return 0;
-    // std::string src("sds  dsd ");
-    // std::string dst;
-    // strip(src, dst, ' ');
-    // std::cout << "src=\"" << src << "\"" << std::endl;
-    // std::cout << "dst=\"" << dst << "\"" << std::endl;
-
 }
