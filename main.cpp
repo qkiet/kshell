@@ -7,14 +7,60 @@
 #include <sys/wait.h>
 #include <filesystem>
 #include <cstring>
+#include <vector>
 
+void split_string(const std::string &str, std::vector<std::string> &vec, char delim = ' ');
+
+
+void debug_vector(const std::vector<std::string> &vec) {
+    for (int i = 0; i < vec.size(); i++) {
+        std::cout << "Vector " << i << " is " << vec[i] << std::endl;
+    }
+}
+
+void char_point_list_to_vector(const char ***ptr_list, size_t len, std::vector<std::string> &vec) {
+    if (len == 0) {
+        return;
+    }
+    for (int i = 0; i < len; i++) {
+        vec.push_back(std::string((*ptr_list)[i]));
+    }
+}
+
+void vector_to_null_term_char_pointer_list(const std::vector<std::string> &vec, char ***ptr_list) {
+    *ptr_list = (char**) malloc(vec.size() + 1);
+    for (int i = 0; i < vec.size(); i++) {
+        (*ptr_list)[i] = (char *) malloc(vec[i].length() + 1);
+        memset((*ptr_list)[i], 0, vec[i].length() + 1);
+        memcpy((*ptr_list)[i], vec[i].c_str(), vec[i].length());
+    }
+    (*ptr_list)[vec.size()] = nullptr;
+}
+
+void free_char_pointer_list(char **ptr_list[], size_t len) {
+    for (int i = 0; i < len; i++) {
+        free((*ptr_list)[i]);
+    }
+    free(*ptr_list);
+}
+
+void execv_cpp_wrapper(const std::string executable, const std::vector<std::string> &args) {
+    char **args_to_syscall;
+
+    if (args.size() == 0) {
+        std::cerr << "args must have at least one argument - the absolute path to executable path itself" << std::endl;
+        return;
+    }
+    vector_to_null_term_char_pointer_list(args, &args_to_syscall);
+    execv(executable.c_str(), args_to_syscall);
+    free_char_pointer_list(&args_to_syscall, args.size() + 1);
+}
 
 std::string resolve_complete_execute_path(const std::string &input_executable_path) {
     if (std::filesystem::exists(input_executable_path)) {
         std::cout << "Already found executable path!" << std::endl;
         return input_executable_path;
     }
-    std::cout << "Resolve executable path from environment variable PATH..." << std::endl;
     if (NULL == std::getenv("PATH")) {
         std::cout << "Not found \"PATH\" value!" << std::endl;
         return std::string("");
@@ -34,40 +80,81 @@ std::string resolve_complete_execute_path(const std::string &input_executable_pa
     return std::string();
 }
 
-void execute_command(const std::string &executable, char**argument_list, size_t argument_list_len) {
-    if ((nullptr == argument_list) || (argument_list_len == 0)) {
-        char *args[] = {nullptr};
-        execv(executable.c_str(), args);
+void strip(const std::string &src, std::string &dst, char delim) {
+    // Let's copy dst to src first
+    dst = src;
+    size_t begin_of_delim = -1;
+    size_t end_of_delim = -1;
+    for (size_t i = 0; i < src.length();) {
+        if (dst[i] != delim) {
+            // This is the end of the delim group. Time to replace it with empty string
+            if ((begin_of_delim != -1) && (begin_of_delim != end_of_delim)) {
+                std::cout << "Replace! begin_of_delim=" << begin_of_delim << "end_of_delim=" << end_of_delim << " with " << std::string("") << std::endl;
+                dst.replace(begin_of_delim, end_of_delim - begin_of_delim + 1, std::string(1, delim));
+                // Update the index after the replacement
+                i = begin_of_delim;
+                begin_of_delim = -1;
+                end_of_delim = -1;
+                continue;
+            }
+            // Otherwise, just move to the next character
+            i++;
+            begin_of_delim = -1;
+            end_of_delim = -1;
+            continue;
+        }
+        if (begin_of_delim != -1) {
+            // Update the end index of the delim group
+            std::cout << "Update the end index of the delim group to " << i << std::endl;
+            end_of_delim = i;
+            i++;
+            continue;
+        }
+        // this is the first delim of a new delim group
+        std::cout << "New delim group found at index " << i << std::endl;
+        end_of_delim = i;
+        begin_of_delim = i;
+        // If there is one delim at the end of the string, strip it too!
+        if (begin_of_delim == (dst.length() - 1)) {
+            std::cout << "Replace! begin_of_delim=" << begin_of_delim << " with " << std::string("") << std::endl;
+            dst.replace(begin_of_delim, 1, std::string(""));
+            i = begin_of_delim;
+            begin_of_delim = -1;
+            end_of_delim = -1;
+            continue;
+        }
+        i++;
     }
-    for (int i = 0; i < argument_list_len; i++) {
-        printf("argument_list[%d]=\"%s\"\n", i, argument_list[i]);
-    }
-    char *modifed_argument_list[argument_list_len + 2];
-    char *tmp = (char*) malloc(executable.length() + 1);
-    memset(tmp, 0, executable.length() + 1);
-    memcpy(tmp, executable.c_str(), executable.length());
-    // First argument is always the executable itself
-    modifed_argument_list[0] = tmp;
-    for (int i = 0; i < argument_list_len; i++) {
-        modifed_argument_list[i + 1] = argument_list[i];
-    }
-    modifed_argument_list[argument_list_len + 1] = nullptr;
-    for (int i = 0; i < argument_list_len + 2; i++) {
-        printf("modifed_argument_list[%d]=\"%s\"\n", i, modifed_argument_list[i]);
-    }
-    pid_t child_pid = fork();
-    if (child_pid == 0) {
-        execv(executable.c_str(), modifed_argument_list);
-    }
-    free(tmp);
 }
 
-int main(int argc, char* argv[]) {
-    // Find host name first
+void split_string(const std::string &str, std::vector<std::string> &vec, char delim) {
+    if (str.find(delim) == std::string::npos) {
+        vec.push_back(str);
+        return;
+    }
+    // Sanitize delimit first if there are consecutive deliminators occasion
+    std::string sanitized_str;
+    strip(str, sanitized_str, delim);
+    size_t begin_substr;
+    size_t next_delim_pos = sanitized_str.find(delim);
+    do {
+        std::string sub_str = sanitized_str.substr(begin_substr, next_delim_pos - begin_substr);
+        vec.push_back(sub_str);
+        begin_substr = next_delim_pos + 1;
+        next_delim_pos = sanitized_str.find(delim);
+    } while(next_delim_pos != std::string::npos);
+    if (begin_substr < sanitized_str.length()) {
+        std::string sub_str = sanitized_str.substr(begin_substr, sanitized_str.length() - begin_substr);
+        vec.push_back(sub_str);
+    }
+}
+
+void run_interactive_mode() {
+     // Find host name first
     std::ifstream host_name_file("/etc/hostname");
     if (!host_name_file.is_open()) {
         std::cerr << "Didn't find hostname" << std::endl;
-        return ENOENT;
+        return;
     }
     std::string host_name;
     host_name_file >> host_name;
@@ -89,8 +176,8 @@ int main(int argc, char* argv[]) {
         auto end_of_gid = line.find(":", begin_of_gid);
         auto uid_str = line.substr(begin_of_uid, end_of_uid - begin_of_uid);
         auto gid_str = line.substr(begin_of_gid, end_of_gid - begin_of_gid);
-        auto parsed_uid = atoi(uid_str.c_str());
-        auto parsed_gid = atoi(gid_str.c_str());
+        auto parsed_uid = std::stoi(uid_str.c_str());
+        auto parsed_gid = std::stoi(gid_str.c_str());
         if ((parsed_uid != process_uid) || (parsed_gid != process_gid)) {
             continue;
         }
@@ -99,9 +186,26 @@ int main(int argc, char* argv[]) {
     std::string red_color_code = "\033[31m";
     std::string yellow_color_code = "\033[33m";
     std::string white_color_code = "\033[0m";
+    while (true) {
+        std::string command_buff;
+        std::cout << red_color_code << username << " " << yellow_color_code << host_name << white_color_code << " < ";
+        std::cin >> command_buff;
+        std::cout << "Receive user input \"" << command_buff << "\"" << std::endl;
+        std::string executable = command_buff.substr(0, command_buff.find(" "));
+        std::vector<std::string> command_args;
+        split_string(command_buff, command_args, ' ');
+        std::cout << "Executable: \"" << command_args[0] << "\"" << std::endl;
+        debug_vector(command_args);
+        
+    }
+}
+
+
+
+int main(int argc, char* argv[]) {
     if (argc == 1) {
-        std::cout << "Not support interactive mode yet!" << std::endl;
-        return EPERM;
+        run_interactive_mode();
+        // It should not reach here
     }
     auto executable_path = std::string(argv[1]);
     auto absolute_executable_path = resolve_complete_execute_path(executable_path);
@@ -109,12 +213,19 @@ int main(int argc, char* argv[]) {
         std::cerr << "No such file found \"" << executable_path << "\"" << std::endl;
         return ENOENT;
     }
-    if (argc == 2) { // Only executable without argument
-        execute_command(absolute_executable_path, nullptr, 0);
-    } else {
-        execute_command(absolute_executable_path, &argv[2], argc - 2);
-    }
+
+    std::vector<std::string> command_args;
+    char **ptr_to_second_args = &argv[1];
+    char_point_list_to_vector((const char ***)&ptr_to_second_args, argc - 1, command_args);
+    execv_cpp_wrapper(absolute_executable_path, command_args);
 
     wait(NULL);
+
     return 0;
+    // std::string src("sds  dsd ");
+    // std::string dst;
+    // strip(src, dst, ' ');
+    // std::cout << "src=\"" << src << "\"" << std::endl;
+    // std::cout << "dst=\"" << dst << "\"" << std::endl;
+
 }
