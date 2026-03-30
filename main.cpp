@@ -220,8 +220,14 @@ void run_interactive_mode() {
         std::string command_buff;
         std::cout << red_color_code << username << " " << yellow_color_code << host_name << white_color_code << " < ";
         std::getline(std::cin, command_buff);
+        if (std::cin.eof()) {
+            exit(0);
+        }
         std::cout << "Receive user input \"" << command_buff << "\"" << std::endl;
         std::string executable = command_buff.substr(0, command_buff.find(" "));
+        if (executable == std::string("exit")) {
+            exit(0);
+        }
         std::cout << "Executable: \"" << executable << "\"" << std::endl;
         std::vector<std::string> command_args;
         std::string absolute_executable_path;
