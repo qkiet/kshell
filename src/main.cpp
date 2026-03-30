@@ -71,14 +71,13 @@ void run_interactive_mode() {
             exit(0);
         }
         std::cout << "Executable: \"" << executable << "\"" << std::endl;
-        std::vector<std::string> command_args;
         std::string absolute_executable_path;
         absolute_executable_path = resolve_complete_execute_path(executable);
         if (absolute_executable_path.length() == 0) {
             std::cerr << "No such file found \"" << executable << "\"" << std::endl;
             continue;
         }
-        split_string(command_buff, command_args, ' ');
+        auto command_args = split_string(command_buff);
         execv_cpp_wrapper(absolute_executable_path, command_args);
     }
 }
@@ -91,8 +90,7 @@ void run_sub_command(const CommandLineOptions &options) {
         std::cerr << "No such executable file found \"" << executable << "\"" << std::endl;
         exit(ENOENT);
     }
-    std::vector<std::string> command_args;
-    split_string(options.sub_command, command_args, ' ');
+    auto command_args = split_string(options.sub_command);
     execv_cpp_wrapper(absolute_executable_path, command_args);
 }
 

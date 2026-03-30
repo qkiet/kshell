@@ -4,12 +4,10 @@
 // Test the strip function
 TEST(UtilTest, Strip) {
   std::string str = "hello  world";
-  std::string dst;
-  strip(str, dst, ' ');
+  std::string dst = strip(str, ' ');
   EXPECT_EQ(dst, "hello world");
   std::string str2 = " hello  world  ";
-  std::string dst2;
-  strip(str2, dst2, ' ');
+  std::string dst2 = strip(str2, ' ');
   EXPECT_EQ(dst2, "hello world");
 }
 
@@ -17,12 +15,12 @@ TEST(UtilTest, Strip) {
 TEST(UtilTest, SplitString) {
   std::string str = "hello world";
   std::vector<std::string> vec;
-  split_string(str, vec, ' ');
+  vec = split_string(str, ' ');
   EXPECT_EQ(vec.size(), 2);
   EXPECT_EQ(vec[0], "hello");
   EXPECT_EQ(vec[1], "world");
   std::string str2 = "";
   std::vector<std::string> vec2;
-  split_string(str2, vec2, ' ');
+  vec2 = split_string(str2, ' ');
   EXPECT_EQ(vec2.size(), 0);
 }

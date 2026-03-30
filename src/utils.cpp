@@ -51,9 +51,9 @@ std::string resolve_complete_execute_path(const std::string &input_executable_pa
     return std::string();
 }
 
-void strip(const std::string &src, std::string &dst, char delim) {
+std::string strip(const std::string &src, char delim) {
     // Let's copy dst to src first
-    dst = src;
+    std::string dst = src;
     size_t begin_of_delim = -1;
     size_t end_of_delim = -1;
     bool delim_group_at_beginning = false;
@@ -109,20 +109,21 @@ void strip(const std::string &src, std::string &dst, char delim) {
         }
         i++;
     }
+    return dst;
 }
 
 
-void split_string(const std::string &str, std::vector<std::string> &vec, char delim) {
+std::vector<std::string> split_string(const std::string &str, char delim) {
     if (str.length() == 0) {
-        return;
+        return std::vector<std::string>();
     }
+    std::vector<std::string> vec;
     if (str.find(delim) == std::string::npos) {
         vec.push_back(str);
-        return;
+        return vec;
     }
     // Sanitize delimit first if there are consecutive deliminators occasion
-    std::string sanitized_str;
-    strip(str, sanitized_str, delim);
+    auto sanitized_str = strip(str, delim);
     size_t begin_substr = 0;
     size_t next_delim_pos = sanitized_str.find(delim);
     do {
@@ -135,4 +136,5 @@ void split_string(const std::string &str, std::vector<std::string> &vec, char de
         std::string sub_str = sanitized_str.substr(begin_substr, sanitized_str.length() - begin_substr);
         vec.push_back(sub_str);
     }
+    return vec;
 }
