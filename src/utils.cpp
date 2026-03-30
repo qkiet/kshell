@@ -56,16 +56,26 @@ void strip(const std::string &src, std::string &dst, char delim) {
     dst = src;
     size_t begin_of_delim = -1;
     size_t end_of_delim = -1;
+    bool delim_group_at_beginning = false;
     for (size_t i = 0; i < src.length();) {
         if (dst[i] != delim) {
             // This is the end of the delim group. Time to replace it with empty string
-            if ((begin_of_delim != -1) && (begin_of_delim != end_of_delim)) {
-                std::cout << "Replace! begin_of_delim=" << begin_of_delim << "end_of_delim=" << end_of_delim << " with " << std::string("") << std::endl;
+            if (begin_of_delim != -1 && begin_of_delim != end_of_delim) {
+                std::cout << "Replace! begin_of_delim=" << begin_of_delim << "end_of_delim=" << end_of_delim << " with \"" << std::string(1, delim) << "\"" << std::endl;
                 dst.replace(begin_of_delim, end_of_delim - begin_of_delim + 1, std::string(1, delim));
                 // Update the index after the replacement
                 i = begin_of_delim;
                 begin_of_delim = -1;
                 end_of_delim = -1;
+                continue;
+            }
+            if (begin_of_delim != -1 && delim_group_at_beginning) {
+                std::cout << "Replace! begin_of_delim=" << begin_of_delim << "end_of_delim=" << end_of_delim << " with \"" << std::string("") << "\"" << std::endl;
+                dst.replace(begin_of_delim, end_of_delim - begin_of_delim + 1, std::string(""));
+                i = begin_of_delim;
+                begin_of_delim = -1;
+                end_of_delim = -1;
+                delim_group_at_beginning = false;
                 continue;
             }
             // Otherwise, just move to the next character
@@ -83,8 +93,11 @@ void strip(const std::string &src, std::string &dst, char delim) {
         }
         // this is the first delim of a new delim group
         std::cout << "New delim group found at index " << i << std::endl;
-        end_of_delim = i;
+        if (i == 0) {
+            delim_group_at_beginning = true;
+        }
         begin_of_delim = i;
+        end_of_delim = i;
         // If there is one delim at the end of the string, strip it too!
         if (begin_of_delim == (dst.length() - 1)) {
             std::cout << "Replace! begin_of_delim=" << begin_of_delim << " with " << std::string("") << std::endl;
@@ -100,6 +113,9 @@ void strip(const std::string &src, std::string &dst, char delim) {
 
 
 void split_string(const std::string &str, std::vector<std::string> &vec, char delim) {
+    if (str.length() == 0) {
+        return;
+    }
     if (str.find(delim) == std::string::npos) {
         vec.push_back(str);
         return;
