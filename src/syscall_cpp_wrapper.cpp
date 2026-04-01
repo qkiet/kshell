@@ -18,23 +18,21 @@ int execv_cpp_wrapper(const std::string executable, const std::vector<std::strin
         return EINVAL;
     }
     size_t args_to_syscall_len;
-    auto args_to_syscall = vector_to_null_term_char_pointer_list(args, &args_to_syscall_len);
+    char *args_to_syscall[args.size() + 1]; // +1 for the null terminator
+    for (int i = 0; i < args.size(); i++) {
+        args_to_syscall[i] = (char *) args[i].c_str();
+    }
+    args_to_syscall[args.size()] = nullptr;
     pid_t child_pid = fork();
     if (child_pid == -1) {
         std::cerr << "Failed to fork" << std::endl;
-        free_char_pointer_list((char ***)&args_to_syscall, args_to_syscall_len);
-        free(args_to_syscall);
         return ECHILD;
     }
     if (child_pid == 0) {
         execv(executable.c_str(), args_to_syscall);
         std::cerr << "Failed to execute executable: \"" << executable << "\"" << std::endl;
-        free_char_pointer_list((char ***)&args_to_syscall, args_to_syscall_len);
-        free(args_to_syscall);
         return ENOEXEC;
     }
     waitpid(child_pid, status, 0);
-    free_char_pointer_list((char ***)&args_to_syscall, args_to_syscall_len);
-    free(args_to_syscall);
     return 0;
 }

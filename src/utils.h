@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 
-char** vector_to_null_term_char_pointer_list(const std::vector<std::string> &vec, size_t *len);
-void free_char_pointer_list(char ***ptr_list, size_t len);
 void debug_vector(const std::vector<std::string> &vec);
 std::string resolve_complete_execute_path(const std::string &input_executable_path);
 std::string strip(const std::string &src, char delim = ' ');
