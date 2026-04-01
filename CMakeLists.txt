@@ -21,6 +21,8 @@ add_executable(
   ksh_test
   tests/utils.cpp
   src/utils.cpp
+  tests/syscall_cpp_wrapper.cpp
+  src/syscall_cpp_wrapper.cpp
 )
 
 target_include_directories(ksh_test PRIVATE src)
