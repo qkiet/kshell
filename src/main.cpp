@@ -1,3 +1,5 @@
+#define TAG "Main"
+
 #include <iostream>
 #include <fstream>
 #include <errno.h>

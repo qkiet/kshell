@@ -1,3 +1,5 @@
+#define TAG "SyscallCppWrapper"
+
 #include "syscall_cpp_wrapper.h"
 #include "utils.h"
 #include <iostream>

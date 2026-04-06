@@ -1,3 +1,5 @@
+#define TAG "Utils"
+
 #include "utils.h"
 #include <cstring>
 #include <iostream>

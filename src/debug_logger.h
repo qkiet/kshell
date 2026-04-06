@@ -17,7 +17,11 @@ class DebugLogger {
         if (!get().mEnabled) {
             return;
         }
+#ifndef TAG
         (std::cout << ... << std::forward<Args>(args)) << std::endl;
+#else
+        (std::cout << "[" << TAG << "] " << ... << std::forward<Args>(args)) << std::endl;
+#endif
     }
 
     template <typename... Args>
