@@ -2,21 +2,22 @@
 #include <cstring>
 #include <iostream>
 #include <filesystem>
+#include "debug_logger.h"
 
 
 void debug_vector(const std::vector<std::string> &vec) {
     for (int i = 0; i < vec.size(); i++) {
-        std::cout << "Vector " << i << " is " << vec[i] << std::endl;
+        DebugLogger::print("Vector ", i, " is ", vec[i]);
     }
 }
 
 std::string resolve_complete_execute_path(const std::string &input_executable_path) {
     if (std::filesystem::exists(input_executable_path)) {
-        std::cout << "Already found executable path!" << std::endl;
+        DebugLogger::print("Already found executable path!");
         return input_executable_path;
     }
     if (NULL == std::getenv("PATH")) {
-        std::cout << "Not found \"PATH\" value!" << std::endl;
+        DebugLogger::error("Not found \"PATH\" value!");
         return std::string("");
     }
     auto path_value = std::string(std::getenv("PATH"));
@@ -44,7 +45,7 @@ std::string strip(const std::string &src, char delim) {
         if (dst[i] != delim) {
             // This is the end of the delim group. Time to replace it with empty string
             if (begin_of_delim != -1 && begin_of_delim != end_of_delim) {
-                std::cout << "Replace! begin_of_delim=" << begin_of_delim << ", end_of_delim=" << end_of_delim << " with \"" << std::string(1, delim) << "\"" << std::endl;
+                DebugLogger::print("Replace! begin_of_delim=", begin_of_delim, ", end_of_delim=", end_of_delim, " with \"", std::string(1, delim), "\"");
                 dst.replace(begin_of_delim, end_of_delim - begin_of_delim + 1, std::string(1, delim));
                 // Update the index after the replacement
                 i = begin_of_delim;
@@ -53,7 +54,7 @@ std::string strip(const std::string &src, char delim) {
                 continue;
             }
             if (begin_of_delim != -1 && delim_group_at_beginning) {
-                std::cout << "Replace! begin_of_delim=" << begin_of_delim << ", end_of_delim=" << end_of_delim << " with \"" << std::string("") << "\"" << std::endl;
+                DebugLogger::print("Replace! begin_of_delim=", begin_of_delim, ", end_of_delim=", end_of_delim, " with \"", std::string(""), "\"");
                 dst.replace(begin_of_delim, end_of_delim - begin_of_delim + 1, std::string(""));
                 i = begin_of_delim;
                 begin_of_delim = -1;
@@ -69,13 +70,13 @@ std::string strip(const std::string &src, char delim) {
         }
         if (begin_of_delim != -1) {
             // Update the end index of the delim group
-            std::cout << "Update the end index of the delim group to " << i << std::endl;
+            DebugLogger::print("Update the end index of the delim group to ", i);
             end_of_delim = i;
             i++;
             continue;
         }
         // this is the first delim of a new delim group
-        std::cout << "New delim group found at index " << i << std::endl;
+        DebugLogger::print("New delim group found at index ", i);
         if (i == 0) {
             delim_group_at_beginning = true;
         }
@@ -83,7 +84,7 @@ std::string strip(const std::string &src, char delim) {
         end_of_delim = i;
         // If there is one delim at the end of the string, strip it too!
         if (begin_of_delim == (dst.length() - 1)) {
-            std::cout << "Replace! begin_of_delim=" << begin_of_delim << ", end_of_delim=" << end_of_delim << " with " << std::string("") << std::endl;
+            DebugLogger::print("Replace! begin_of_delim=", begin_of_delim, ", end_of_delim=", end_of_delim, " with ", std::string(""));
             dst.replace(begin_of_delim, 1, std::string(""));
             i = begin_of_delim;
             begin_of_delim = -1;

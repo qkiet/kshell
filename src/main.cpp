@@ -10,17 +10,19 @@
 #include <vector>
 #include "syscall_cpp_wrapper.h"
 #include "utils.h"
+#include "debug_logger.h"
 
 
 struct CommandLineOptions {
     bool interactive_mode = true;
+    bool debug = false;
     std::vector<std::string> command_args;
     std::string sub_command;
 };
 
 
 void run_interactive_mode() {
-     // Find host name first
+    // Find host name first
     std::ifstream host_name_file("/etc/hostname");
     if (!host_name_file.is_open()) {
         std::cerr << "Didn't find hostname" << std::endl;
@@ -58,19 +60,21 @@ void run_interactive_mode() {
     std::string white_color_code = "\033[0m";
     while (true) {
         std::string command_buff;
+        // Have to use this to print the prompt because using DebugLogger::get().print() may not print this prompt if shell
+        // is not in debug mode
         std::cout << red_color_code << username << " " << yellow_color_code << host_name << white_color_code << " < ";
         std::getline(std::cin, command_buff);
         // If the user hits Ctrl+D, exit the shell
         if (std::cin.eof()) {
             exit(0);
         }
-        std::cout << "Receive user input \"" << command_buff << "\"" << std::endl;
+        DebugLogger::print("Receive user input \"", command_buff, "\"");
         std::string executable = command_buff.substr(0, command_buff.find(" "));
         // Self-explanatory, "exit" to exit the shell
         if (executable == std::string("exit")) {
             exit(0);
         }
-        std::cout << "Executable: \"" << executable << "\"" << std::endl;
+        DebugLogger::print("Executable: \"", executable, "\"");
         std::string absolute_executable_path;
         absolute_executable_path = resolve_complete_execute_path(executable);
         if (absolute_executable_path.length() == 0) {
@@ -95,13 +99,14 @@ void run_sub_command(const CommandLineOptions &options) {
         std::cerr << "No such executable file found \"" << executable << "\"" << std::endl;
         exit(ENOENT);
     }
-    auto command_args = split_string(options.sub_command);
+    DebugLogger::print("exec: ", absolute_executable_path, " (from \"", executable, "\")");
+    auto command_args = split_string(options.sub_command, ' ');
     int status;
     execv_cpp_wrapper(absolute_executable_path, command_args, &status);
 }
 
 
-void parse_command_line_arguments(int argc, char* argv[], CommandLineOptions &options) {
+void parse_command_line_arguments(int argc, char *argv[], CommandLineOptions &options) {
     for (int i = 1; i < argc;) {
         if (std::string(argv[i]) == "-c") {
             options.interactive_mode = false;
@@ -116,13 +121,21 @@ void parse_command_line_arguments(int argc, char* argv[], CommandLineOptions &op
             options.sub_command = std::string(argv[i + 1]);
             i += 2;
             continue;
+        } else if (std::string(argv[i]) == "-d") {
+            options.debug = true;
+            i++;
+            continue;
+        } else {
+            std::cerr << "Unknown option: \"" << argv[i] << "\"" << std::endl;
+            exit(EINVAL);
         }
     }
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     CommandLineOptions options;
     parse_command_line_arguments(argc, argv, options);
+    DebugLogger::configure(options.debug);
     if (options.interactive_mode) {
         run_interactive_mode();
         // It should not reach here
