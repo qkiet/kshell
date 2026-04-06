@@ -39,6 +39,7 @@ std::string resolve_complete_execute_path(const std::string &input_executable_pa
 
 std::string strip(const std::string &src, char delim) {
     // Let's copy dst to src first
+    DebugLogger::print("Stripping string \"", src, "\" with delimiter \"", delim, "\"");
     std::string dst = src;
     size_t begin_of_delim = -1;
     size_t end_of_delim = -1;
@@ -75,6 +76,11 @@ std::string strip(const std::string &src, char delim) {
             DebugLogger::print("Update the end index of the delim group to ", i);
             end_of_delim = i;
             i++;
+            // Special case: if the delim is at the end of the string, strip it too!
+            if (i >= dst.length()) {
+                DebugLogger::print("Replace! begin_of_delim=", begin_of_delim, ", end_of_delim=", end_of_delim, " with \"\"");
+                dst.replace(begin_of_delim, end_of_delim - begin_of_delim + 1, std::string(""));
+            }
             continue;
         }
         // this is the first delim of a new delim group
@@ -100,6 +106,7 @@ std::string strip(const std::string &src, char delim) {
 
 
 std::vector<std::string> split_string(const std::string &str, char delim) {
+    DebugLogger::print("Splitting string \"", str, "\" with delimiter \"", delim, "\"");
     if (str.length() == 0) {
         return std::vector<std::string>();
     }

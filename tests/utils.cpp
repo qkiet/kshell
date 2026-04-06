@@ -6,9 +6,12 @@ TEST(UtilTest, Strip) {
   std::string str = "hello  world";
   std::string dst = strip(str, ' ');
   EXPECT_EQ(dst, "hello world");
-  std::string str2 = " hello  world  ";
-  std::string dst2 = strip(str2, ' ');
-  EXPECT_EQ(dst2, "hello world");
+  str = " hello  world  ";
+  dst = strip(str, ' ');
+  EXPECT_EQ(dst, "hello world");
+  str = "  ";
+  dst = strip(str);
+  EXPECT_EQ(dst, std::string(""));
 }
 
 // Test the split_string function

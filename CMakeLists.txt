@@ -5,7 +5,12 @@ project(ksh)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(${PROJECT_NAME} src/main.cpp src/syscall_cpp_wrapper.cpp src/utils.cpp)
+add_executable(${PROJECT_NAME}
+    src/main.cpp
+    src/syscall_cpp_wrapper.cpp
+    src/utils.cpp
+    src/command_exec.cpp
+)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -18,11 +23,13 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 add_executable(
-  ksh_test
-  tests/utils.cpp
-  src/utils.cpp
-  tests/syscall_cpp_wrapper.cpp
-  src/syscall_cpp_wrapper.cpp
+    ksh_test
+    tests/utils.cpp
+    tests/syscall_cpp_wrapper.cpp
+    tests/command_exec.cpp
+    src/utils.cpp
+    src/syscall_cpp_wrapper.cpp
+    src/command_exec.cpp
 )
 
 target_include_directories(ksh_test PRIVATE src)

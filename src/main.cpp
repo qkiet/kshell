@@ -13,6 +13,7 @@
 #include "syscall_cpp_wrapper.h"
 #include "utils.h"
 #include "debug_logger.h"
+#include "command_exec.h"
 
 
 struct CommandLineOptions {
@@ -76,20 +77,7 @@ void run_interactive_mode() {
         if (executable == std::string("exit")) {
             exit(0);
         }
-        DebugLogger::print("Executable: \"", executable, "\"");
-        std::string absolute_executable_path;
-        absolute_executable_path = resolve_complete_execute_path(executable);
-        if (absolute_executable_path.length() == 0) {
-            std::cerr << "No such file found \"" << executable << "\"" << std::endl;
-            continue;
-        }
-        auto first_space_pos = command_buff.find(" ");
-        std::vector<std::string> command_args;
-        if (first_space_pos != std::string::npos) {
-            command_args = split_string(command_buff.substr(first_space_pos + 1));
-        }
-        int status;
-        execv_cpp_wrapper(absolute_executable_path, command_args, &status);
+        execute_command(command_buff);
     }
 }
 
