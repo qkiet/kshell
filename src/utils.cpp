@@ -15,6 +15,11 @@ void debug_vector(const std::vector<std::string> &vec) {
 }
 
 std::string resolve_complete_execute_path(const std::string &input_executable_path) {
+    DebugLogger::print("Resolving complete execute path for \"", input_executable_path, "\"");
+    if (input_executable_path.length() == 0) {
+        DebugLogger::error("Input executable path is empty");
+        return std::string("");
+    }
     if (std::filesystem::exists(input_executable_path)) {
         DebugLogger::print("Already found executable path!");
         return input_executable_path;
@@ -106,31 +111,57 @@ std::string strip(const std::string &src, char delim) {
 }
 
 
-std::vector<std::string> split_string(const std::string &str, char delim) {
-    DebugLogger::print("Splitting string \"", str, "\" with delimiter \"", delim, "\"");
-    if (str.length() == 0) {
-        return std::vector<std::string>();
+std::tuple<bool, std::vector<std::string>> split_command_into_parts(const std::string &cmd, char delim) {
+    DebugLogger::print("Splitting string \"", cmd, "\" with delimiter \"", delim, "\" into parts");
+    if (cmd.length() == 0) {
+        return std::make_tuple(true, std::vector<std::string>());
     }
     std::vector<std::string> vec;
-    if (str.find(delim) == std::string::npos) {
-        vec.push_back(str);
-        return vec;
-    }
     // Sanitize delimit first if there are consecutive deliminators occasion
-    auto sanitized_str = strip(str, delim);
-    size_t begin_substr = 0;
-    size_t next_delim_pos = sanitized_str.find(delim);
-    do {
-        std::string sub_str = sanitized_str.substr(begin_substr, next_delim_pos - begin_substr);
-        vec.push_back(sub_str);
-        begin_substr = next_delim_pos + 1;
-        next_delim_pos = sanitized_str.find(delim, begin_substr);
-    } while(next_delim_pos != std::string::npos);
-    if (begin_substr < sanitized_str.length()) {
-        std::string sub_str = sanitized_str.substr(begin_substr, sanitized_str.length() - begin_substr);
-        vec.push_back(sub_str);
+    auto sanitized_str = strip(cmd, delim);
+    bool is_in_quote = false;
+    std::string current_part;
+    for (auto it = sanitized_str.begin(); it != sanitized_str.end(); it++) {
+        char c = *it;
+        if (c == '"') {
+            // Quote at the beginning of the string, change quote mode to true immediately
+            if (it == sanitized_str.begin()) {
+                is_in_quote = true;
+                continue;
+            }
+            auto last_char = *(it - 1);
+            // Quote has escaped, that mean add the quote to the current part
+            if (last_char == '\\') {
+                current_part += c;
+                continue;
+            }
+            // Quote has not escaped, toggle quote mode
+            is_in_quote = !is_in_quote;
+            continue;
+        }
+        if (c == delim) {
+            // Delim is added to the current part if we are in a quote, that's what double quote are for!
+            if (is_in_quote) {
+                current_part += c;
+                continue;
+            }
+            DebugLogger::print("Adding part \"", current_part, "\" to the result vector");
+            vec.push_back(current_part);
+            current_part.clear();
+            continue;
+        }
+        // Otherwise, just add the character to the current part
+        current_part += c;
     }
-    return vec;
+    // At the end of the loop, if we are in a quote, that means the command is not properly quoted
+    // return false and an empty vector
+    if (is_in_quote) {
+        return std::make_tuple(false, std::vector<std::string>());
+    }
+    // Last part is not added to the vector, add it now
+    DebugLogger::print("Adding last part \"", current_part, "\" to the result vector");
+    vec.push_back(current_part);
+    return std::make_tuple(true, vec);
 }
 
 bool is_properly_quoted(const std::string &str) {

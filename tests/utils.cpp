@@ -15,17 +15,23 @@ TEST(UtilTest, Strip) {
 }
 
 // Test the split_string function
-TEST(UtilTest, SplitString) {
-    std::string str = "hello world";
-    std::vector<std::string> vec;
-    vec = split_string(str, ' ');
-    EXPECT_EQ(vec.size(), 2);
-    EXPECT_EQ(vec[0], "hello");
-    EXPECT_EQ(vec[1], "world");
-    std::string str2 = "";
-    std::vector<std::string> vec2;
-    vec2 = split_string(str2, ' ');
-    EXPECT_EQ(vec2.size(), 0);
+TEST(UtilTest, SplitCommandIntoParts) {
+    auto [properly_quoted, parts] = split_command_into_parts("hello world");
+    EXPECT_TRUE(properly_quoted);
+    EXPECT_EQ(parts.size(), 2);
+    EXPECT_EQ(parts, std::vector<std::string>({"hello", "world"}));
+    auto [properly_quoted2, parts2] = split_command_into_parts("");
+    EXPECT_TRUE(properly_quoted2);
+    EXPECT_EQ(parts2, std::vector<std::string>());
+    auto [properly_quoted3, parts3] = split_command_into_parts("hello \"world\"");
+    EXPECT_TRUE(properly_quoted3);
+    EXPECT_EQ(parts3.size(), 2);
+    EXPECT_EQ(parts3, std::vector<std::string>({"hello", "world"}));
+    auto [properly_quoted4, parts4] = split_command_into_parts("hello \"world");
+    EXPECT_FALSE(properly_quoted4);
+    auto [properly_quoted5, parts5] = split_command_into_parts("\"\"");
+    EXPECT_TRUE(properly_quoted5);
+    EXPECT_EQ(parts5, std::vector<std::string>({""}));
 }
 
 TEST(UtilTest, IsProperlyQuoted) {
