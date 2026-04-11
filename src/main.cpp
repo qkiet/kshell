@@ -73,10 +73,6 @@ void run_interactive_mode() {
         }
         DebugLogger::print("Receive user input \"", command_buff, "\"");
         std::string executable = command_buff.substr(0, command_buff.find(" "));
-        // Self-explanatory, "exit" to exit the shell
-        if (executable == std::string("exit")) {
-            exit(0);
-        }
         bool properly_quoted;
         execute_command(command_buff, properly_quoted);
     }
