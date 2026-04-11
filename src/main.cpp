@@ -15,6 +15,7 @@
 #include "utils.h"
 #include "debug_logger.h"
 #include "command_exec.h"
+#include <limits.h>
 
 
 struct CommandLineOptions {
@@ -47,7 +48,13 @@ void run_interactive_mode() {
         std::string command_buff;
         // Have to use this to print the prompt because using DebugLogger::get().print() may not print this prompt if shell
         // is not in debug mode
-        std::cout << red_color_code << username << " " << yellow_color_code << host_name << white_color_code << " < ";
+        char current_directory[PATH_MAX];
+        memset(current_directory, 0, PATH_MAX);
+        if (getcwd(current_directory, PATH_MAX) == nullptr) {
+            DebugLogger::error("Failed to get current directory");
+            exit(EIO);
+        }
+        std::cout << red_color_code << username << " " << yellow_color_code << host_name << white_color_code << ":" << std::string(current_directory) << " < ";
         std::getline(std::cin, command_buff);
         // If the user hits Ctrl+D, exit the shell
         if (std::cin.eof()) {
