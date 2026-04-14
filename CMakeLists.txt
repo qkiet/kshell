@@ -32,10 +32,20 @@ add_executable(
     src/command_exec.cpp
 )
 
+add_executable(
+    ksh_integ_test
+    tests/integ_test.cpp
+)
+
 target_include_directories(ksh_test PRIVATE src)
 
 target_link_libraries(
   ksh_test
+  GTest::gtest_main
+)
+
+target_link_libraries(
+  ksh_integ_test
   GTest::gtest_main
 )
 
