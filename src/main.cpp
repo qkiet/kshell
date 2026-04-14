@@ -23,6 +23,7 @@ struct CommandLineOptions {
     bool debug = false;
     std::vector<std::string> command_args;
     std::string sub_command;
+    std::string debug_log_file;
 };
 
 
@@ -105,6 +106,10 @@ void parse_command_line_arguments(int argc, char *argv[], CommandLineOptions &op
             options.debug = true;
             i++;
             continue;
+        } else if (std::string(argv[i]) == "-l") {
+            options.debug_log_file = std::string(argv[i + 1]);
+            i += 2;
+            continue;
         } else {
             std::cerr << "Unknown option: \"" << argv[i] << "\"" << std::endl;
             exit(EINVAL);
@@ -116,6 +121,9 @@ int main(int argc, char *argv[]) {
     CommandLineOptions options;
     parse_command_line_arguments(argc, argv, options);
     DebugLogger::configure(options.debug);
+    if (options.debug_log_file.length() > 0) {
+        DebugLogger::set_output_file(options.debug_log_file);
+    }
     if (options.interactive_mode) {
         run_interactive_mode();
         // It should not reach here
