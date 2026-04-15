@@ -11,14 +11,14 @@
 
 
 
-int execute_command(const std::string &command, bool &properly_quoted) {
-    if (strip(command).length() == 0) {
+int parse_commands_string_and_execute(const std::string &commands_string, bool &properly_quoted) {
+    if (strip(commands_string).length() == 0) {
         DebugLogger::error("Command is empty");
         properly_quoted = true;
         return EINVAL;
     }
-    DebugLogger::print("Executing command \"", command, "\"");
-    auto [properly_quoted_result, command_parts] = split_command_into_parts(command);
+    DebugLogger::print("Executing command \"", commands_string, "\"");
+    auto [properly_quoted_result, command_parts] = split_command_into_parts(commands_string);
     if (!properly_quoted_result) {
         DebugLogger::error("Command is not properly quoted");
         properly_quoted = false;
@@ -60,6 +60,6 @@ int execute_command(const std::string &command, bool &properly_quoted) {
     command_parts.erase(command_parts.begin());
     int status;
     execv_cpp_wrapper(absolute_executable_path, command_parts, &status);
-    DebugLogger::print("Command \"", command, "\" exited with status ", status);
+    DebugLogger::print("Command \"", commands_string, "\" exited with status ", status);
     return status;
 }

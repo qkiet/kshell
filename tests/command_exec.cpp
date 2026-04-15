@@ -7,31 +7,31 @@
 
 TEST(CommandExecTest, ExecuteCommand) {
     bool properly_quoted;
-    int status = execute_command("ls", properly_quoted);
+    int status = parse_commands_string_and_execute("ls", properly_quoted);
     EXPECT_TRUE(properly_quoted);
     EXPECT_EQ(status, 0);
-    status = execute_command("ls -l", properly_quoted);
+    status = parse_commands_string_and_execute("ls -l", properly_quoted);
     EXPECT_EQ(status, 0);
-    status = execute_command("lslsdsds", properly_quoted);
+    status = parse_commands_string_and_execute("lslsdsds", properly_quoted);
     EXPECT_TRUE(properly_quoted);
     EXPECT_EQ(status, ENOENT);
-    status = execute_command("", properly_quoted);
+    status = parse_commands_string_and_execute("", properly_quoted);
     EXPECT_EQ(status, EINVAL);
-    status = execute_command(" ", properly_quoted);
+    status = parse_commands_string_and_execute(" ", properly_quoted);
     EXPECT_EQ(status, EINVAL);
-    status = execute_command("  ", properly_quoted);
+    status = parse_commands_string_and_execute("  ", properly_quoted);
     EXPECT_TRUE(properly_quoted);
     EXPECT_EQ(status, EINVAL);
-    status = execute_command("\"ls\"", properly_quoted);
+    status = parse_commands_string_and_execute("\"ls\"", properly_quoted);
     EXPECT_TRUE(properly_quoted);
     EXPECT_EQ(status, 0);
-    status = execute_command("\"ls", properly_quoted);
+    status = parse_commands_string_and_execute("\"ls", properly_quoted);
     EXPECT_FALSE(properly_quoted);
     EXPECT_EQ(status, EINVAL);
-    status = execute_command("\"ls\" \"-l\"", properly_quoted);
+    status = parse_commands_string_and_execute("\"ls\" \"-l\"", properly_quoted);
     EXPECT_TRUE(properly_quoted);
     EXPECT_EQ(status, 0);
-    status = execute_command("ls\"\"", properly_quoted);
+    status = parse_commands_string_and_execute("ls\"\"", properly_quoted);
     EXPECT_TRUE(properly_quoted);
     EXPECT_EQ(status, 0);
 }
@@ -40,28 +40,28 @@ TEST(CommandExecTest, ExecuteCommand) {
 
 TEST(CommandExecTest, QuoteOnlyAtEnd) {
     bool pq;
-    int s = execute_command("ls \"", pq);
+    int s = parse_commands_string_and_execute("ls \"", pq);
     EXPECT_FALSE(pq);
     EXPECT_EQ(s, EINVAL);
 }
 
 TEST(CommandExecTest, EmptyQuotedString) {
     bool pq;
-    int s = execute_command("\"\"", pq);
+    int s = parse_commands_string_and_execute("\"\"", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, ENOENT);
 }
 
 TEST(CommandExecTest, QuotedSpacesAsArg) {
     bool pq;
-    int s = execute_command("echo \"   \"", pq);
+    int s = parse_commands_string_and_execute("echo \"   \"", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, 0);
 }
 
 TEST(CommandExecTest, QuotedSpacesAsCommand) {
     bool pq;
-    int s = execute_command("\"   \"", pq);
+    int s = parse_commands_string_and_execute("\"   \"", pq);
     EXPECT_TRUE(pq);
     EXPECT_TRUE(s == EINVAL || s == ENOENT);
 }
@@ -70,49 +70,49 @@ TEST(CommandExecTest, NestedQuoteLookalike) {
     // echo "hello "world" bye" — inner quote closes the first pair
     // tokens: [echo] [hello ] [world] [ bye] — 4 quotes, all paired
     bool pq;
-    int s = execute_command("echo \"hello \"world\" bye\"", pq);
+    int s = parse_commands_string_and_execute("echo \"hello \"world\" bye\"", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, 0);
 }
 
 TEST(CommandExecTest, ConsecutiveQuotePairs) {
     bool pq;
-    int s = execute_command("\"\"\"\"\"\"", pq);
+    int s = parse_commands_string_and_execute("\"\"\"\"\"\"", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, ENOENT);
 }
 
 TEST(CommandExecTest, OddNumberOfQuotes) {
     bool pq;
-    int s = execute_command("\"\"\"", pq);
+    int s = parse_commands_string_and_execute("\"\"\"", pq);
     EXPECT_FALSE(pq);
     EXPECT_EQ(s, EINVAL);
 }
 
 TEST(CommandExecTest, EmptyQuoteBeforeCommand) {
     bool pq;
-    int s = execute_command("\"\"ls", pq);
+    int s = parse_commands_string_and_execute("\"\"ls", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, 0);
 }
 
 TEST(CommandExecTest, QuotedCommandWithTrailingSpaceInside) {
     bool pq;
-    int s = execute_command("\"ls \"", pq);
+    int s = parse_commands_string_and_execute("\"ls \"", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, ENOENT);
 }
 
 TEST(CommandExecTest, QuotedCommandWithLeadingSpaceInside) {
     bool pq;
-    int s = execute_command("\" ls\"", pq);
+    int s = parse_commands_string_and_execute("\" ls\"", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, ENOENT);
 }
 
 TEST(CommandExecTest, BackslashBeforeQuote) {
     bool pq;
-    int s = execute_command("echo \\\"hello\\\"", pq);
+    int s = parse_commands_string_and_execute("echo \\\"hello\\\"", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, 0);
 }
@@ -121,14 +121,14 @@ TEST(CommandExecTest, BackslashBeforeQuote) {
 
 TEST(CommandExecTest, LeadingAndTrailingSpaces) {
     bool pq;
-    int s = execute_command("   ls   ", pq);
+    int s = parse_commands_string_and_execute("   ls   ", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, 0);
 }
 
 TEST(CommandExecTest, ManySpacesBetweenArgs) {
     bool pq;
-    int s = execute_command("echo       hello       world", pq);
+    int s = parse_commands_string_and_execute("echo       hello       world", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, 0);
 }
@@ -137,7 +137,7 @@ TEST(CommandExecTest, ManySpacesBetweenArgs) {
 
 TEST(CommandExecTest, CommandReturnsNonZero) {
     bool pq;
-    int s = execute_command("false", pq);
+    int s = parse_commands_string_and_execute("false", pq);
     EXPECT_TRUE(pq);
     EXPECT_NE(s, 0);
     EXPECT_NE(s, ENOENT);
@@ -146,28 +146,28 @@ TEST(CommandExecTest, CommandReturnsNonZero) {
 
 TEST(CommandExecTest, ChildExitsZero) {
     bool pq;
-    int s = execute_command("true", pq);
+    int s = parse_commands_string_and_execute("true", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, 0);
 }
 
 TEST(CommandExecTest, AbsolutePathCommand) {
     bool pq;
-    int s = execute_command("/bin/ls", pq);
+    int s = parse_commands_string_and_execute("/bin/ls", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, 0);
 }
 
 TEST(CommandExecTest, AbsolutePathNotFound) {
     bool pq;
-    int s = execute_command("/no/such/binary", pq);
+    int s = parse_commands_string_and_execute("/no/such/binary", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, ENOENT);
 }
 
 TEST(CommandExecTest, RelativePathNotFound) {
     bool pq;
-    int s = execute_command("./nonexistent_binary", pq);
+    int s = parse_commands_string_and_execute("./nonexistent_binary", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, ENOENT);
 }
@@ -177,13 +177,13 @@ TEST(CommandExecTest, RelativePathNotFound) {
 TEST(CommandExecTest, NullByteInCommand) {
     bool pq;
     std::string cmd("ls\0 -l", 6);
-    int s = execute_command(cmd, pq);
+    int s = parse_commands_string_and_execute(cmd, pq);
     EXPECT_TRUE(s == 0 || s == ENOENT || s == EINVAL);
 }
 
 TEST(CommandExecTest, CommandIsJustEmptyQuotePairs) {
     bool pq;
-    int s = execute_command("\"\" \"\" \"\"", pq);
+    int s = parse_commands_string_and_execute("\"\" \"\" \"\"", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, ENOENT);
 }
@@ -191,7 +191,7 @@ TEST(CommandExecTest, CommandIsJustEmptyQuotePairs) {
 TEST(CommandExecTest, VeryLongCommand) {
     bool pq;
     std::string cmd = "echo " + std::string(200000, 'A');
-    int s = execute_command(cmd, pq);
+    int s = parse_commands_string_and_execute(cmd, pq);
     EXPECT_TRUE(pq);
     (void)s;
 }
@@ -199,7 +199,7 @@ TEST(CommandExecTest, VeryLongCommand) {
 TEST(CommandExecTest, ExceedArgMax) {
     bool pq;
     std::string cmd = "echo " + std::string(3 * 1024 * 1024, 'B');
-    int s = execute_command(cmd, pq);
+    int s = parse_commands_string_and_execute(cmd, pq);
     EXPECT_TRUE(pq);
     (void)s;
 }
@@ -208,35 +208,35 @@ TEST(CommandExecTest, ExceedArgMax) {
 
 TEST(CommandExecTest, QuotedEmptyBetweenRealArgs) {
     bool pq;
-    int s = execute_command("echo \"\" hello", pq);
+    int s = parse_commands_string_and_execute("echo \"\" hello", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, 0);
 }
 
 TEST(CommandExecTest, SpaceAroundQuotedCommand) {
     bool pq;
-    int s = execute_command("  \"ls\"  ", pq);
+    int s = parse_commands_string_and_execute("  \"ls\"  ", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, 0);
 }
 
 TEST(CommandExecTest, AdjacentQuotedStringsGlued) {
     bool pq;
-    int s = execute_command("echo \"hello\"\"world\"", pq);
+    int s = parse_commands_string_and_execute("echo \"hello\"\"world\"", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, 0);
 }
 
 TEST(CommandExecTest, UnmatchedQuoteAfterCommand) {
     bool pq;
-    int s = execute_command("echo hello\"", pq);
+    int s = parse_commands_string_and_execute("echo hello\"", pq);
     EXPECT_FALSE(pq);
     EXPECT_EQ(s, EINVAL);
 }
 
 TEST(CommandExecTest, UnmatchedQuoteBeforeCommand) {
     bool pq;
-    int s = execute_command("\"echo hello", pq);
+    int s = parse_commands_string_and_execute("\"echo hello", pq);
     EXPECT_FALSE(pq);
     EXPECT_EQ(s, EINVAL);
 }
@@ -244,14 +244,14 @@ TEST(CommandExecTest, UnmatchedQuoteBeforeCommand) {
 TEST(CommandExecTest, QuoteInMiddleOfWord) {
     // ec"ho hel"lo → should become token [echo hello] as the command name
     bool pq;
-    int s = execute_command("ec\"ho hel\"lo", pq);
+    int s = parse_commands_string_and_execute("ec\"ho hel\"lo", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, ENOENT);
 }
 
 TEST(CommandExecTest, OnlyQuotesAndSpaces) {
     bool pq;
-    int s = execute_command("  \"\"  \"\"  ", pq);
+    int s = parse_commands_string_and_execute("  \"\"  \"\"  ", pq);
     EXPECT_TRUE(pq);
     EXPECT_EQ(s, ENOENT);
 }

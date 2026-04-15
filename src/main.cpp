@@ -65,7 +65,7 @@ void run_interactive_mode() {
         DebugLogger::print("Receive user input \"", command_buff, "\"");
         std::string executable = command_buff.substr(0, command_buff.find(" "));
         bool properly_quoted;
-        execute_command(command_buff, properly_quoted);
+        parse_commands_string_and_execute(command_buff, properly_quoted);
     }
 }
 
