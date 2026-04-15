@@ -1,3 +1,5 @@
+#include <cstddef>
+#include <iterator>
 #define TAG "Utils"
 
 #include "utils.h"
@@ -43,15 +45,15 @@ std::string resolve_complete_execute_path(const std::string &input_executable_pa
     return std::string();
 }
 
-std::string strip(const std::string &src, char delim) {
+std::string strip(const std::string &src) {
     // Let's copy dst to src first
-    DebugLogger::print("Stripping string \"", src, "\" with delimiter \"", delim, "\"");
+    DebugLogger::print("Stripping string \"", src, "\"");
     std::string dst = src;
-    size_t begin_of_delim = -1;
-    size_t end_of_delim = -1;
+    size_t begin_of_spaces_group = -1;
+    size_t end_of_spaces_group = -1;
     bool is_in_quote = false;
     for (size_t i = 0; i < dst.length();) {
-        if (dst[i] != delim) {
+        if (dst[i] != ' ') {
             if (dst[i] == '"') {
                 if (i == 0) {
                     is_in_quote = true;
@@ -63,31 +65,31 @@ std::string strip(const std::string &src, char delim) {
                     DebugLogger::print("Toggle quote mode to ", is_in_quote ? "true" : "false");
                 }
             }
-            if (begin_of_delim == 0) {
-                DebugLogger::print("Replace! begin_of_delim=", begin_of_delim, ", end_of_delim=", end_of_delim, " with \"", std::string(""), "\"");
-                dst.replace(begin_of_delim, end_of_delim - begin_of_delim + 1, std::string(""));
+            if (begin_of_spaces_group == 0) {
+                DebugLogger::print("Replace! begin_of_spaces_group=", begin_of_spaces_group, ", end_of_spaces_group=", end_of_spaces_group, " with \"", std::string(""), "\"");
+                dst.replace(begin_of_spaces_group, end_of_spaces_group - begin_of_spaces_group + 1, std::string(""));
                 // Afther this, index 0 is the character that index point to
                 // So to update index for next iteration, we need to point to the next character, which is index 1
                 i = 1;
-                begin_of_delim = -1;
-                end_of_delim = -1;
+                begin_of_spaces_group = -1;
+                end_of_spaces_group = -1;
                 continue;
             }
             // Delim group that is located in the middle of the string, replace it with only one delim
-            if (begin_of_delim != -1 && begin_of_delim != end_of_delim) {
-                DebugLogger::print("Replace! begin_of_delim=", begin_of_delim, ", end_of_delim=", end_of_delim, " with \"", std::string(1, delim), "\"");
-                dst.replace(begin_of_delim, end_of_delim - begin_of_delim + 1, std::string(1, delim));
+            if (begin_of_spaces_group != -1 && begin_of_spaces_group != end_of_spaces_group) {
+                DebugLogger::print("Replace! begin_of_spaces_group=", begin_of_spaces_group, ", end_of_spaces_group=", end_of_spaces_group, " with \"", std::string(" "), "\"");
+                dst.replace(begin_of_spaces_group, end_of_spaces_group - begin_of_spaces_group + 1, std::string(" "));
                 // Update and increase index for next iteration. Increase by 2 because we replaced the delim group
                 // with one delim, plus 1 for current character index point to
-                i = begin_of_delim + 2;
-                begin_of_delim = -1;
-                end_of_delim = -1;
+                i = begin_of_spaces_group + 2;
+                begin_of_spaces_group = -1;
+                end_of_spaces_group = -1;
                 continue;
             }
             // Otherwise, just move to the next character
             i++;
-            begin_of_delim = -1;
-            end_of_delim = -1;
+            begin_of_spaces_group = -1;
+            end_of_spaces_group = -1;
             continue;
         }
         // Delim is inside a quote, just skip it
@@ -95,30 +97,30 @@ std::string strip(const std::string &src, char delim) {
             i++;
             continue;
         }
-        if (begin_of_delim != -1) {
+        if (begin_of_spaces_group != -1) {
             // Update the end index of the delim group
             DebugLogger::print("Update the end index of the delim group to ", i);
-            end_of_delim = i;
+            end_of_spaces_group = i;
             i++;
             // Special case: if the delim is at the end of the string, strip it too!
             if (i >= dst.length()) {
                 DebugLogger::print("The delim is at the end of the string, strip it too!");
-                DebugLogger::print("Replace! begin_of_delim=", begin_of_delim, ", end_of_delim=", end_of_delim, " with \"\"");
-                dst.replace(begin_of_delim, end_of_delim - begin_of_delim + 1, std::string(""));
+                DebugLogger::print("Replace! begin_of_spaces_group=", begin_of_spaces_group, ", end_of_spaces_group=", end_of_spaces_group, " with \"\"");
+                dst.replace(begin_of_spaces_group, end_of_spaces_group - begin_of_spaces_group + 1, std::string(""));
             }
             continue;
         }
         // this is the first delim of a new delim group
         DebugLogger::print("New delim group found at index ", i);
-        begin_of_delim = i;
-        end_of_delim = i;
+        begin_of_spaces_group = i;
+        end_of_spaces_group = i;
         // If there is one delim at the end of the string, strip it too!
-        if (begin_of_delim == (dst.length() - 1)) {
-            DebugLogger::print("Replace! begin_of_delim=", begin_of_delim, ", end_of_delim=", end_of_delim, " with ", std::string(""));
-            dst.replace(begin_of_delim, 1, std::string(""));
-            i = begin_of_delim;
-            begin_of_delim = -1;
-            end_of_delim = -1;
+        if (begin_of_spaces_group == (dst.length() - 1)) {
+            DebugLogger::print("Replace! begin_of_spaces_group=", begin_of_spaces_group, ", end_of_spaces_group=", end_of_spaces_group, " with ", std::string(""));
+            dst.replace(begin_of_spaces_group, 1, std::string(""));
+            i = begin_of_spaces_group;
+            begin_of_spaces_group = -1;
+            end_of_spaces_group = -1;
             continue;
         }
         i++;
@@ -127,48 +129,56 @@ std::string strip(const std::string &src, char delim) {
 }
 
 
-std::tuple<bool, std::vector<std::string>> split_command_into_parts(const std::string &cmd, char delim) {
-    DebugLogger::print("Splitting string \"", cmd, "\" with delimiter \"", delim, "\" into parts");
+std::tuple<bool, std::vector<std::string>> split_string_into_parts(const std::string &str, const std::string &delim) {
+    DebugLogger::print("Splitting string \"", str, "\" with delimiter \"", delim, "\" into parts");
     std::vector<std::string> vec;
-    // Sanitize delimit first if there are consecutive deliminators occasion
-    auto sanitized_str = strip(cmd, delim);
+    // Sanitize string to eliminate leading and trailing spaces, as well as consecutive spaces
+    auto sanitized_str = strip(str);
     if (sanitized_str.length() == 0) {
         return std::make_tuple(true, std::vector<std::string>());
     }
     DebugLogger::print("Sanitized string \"", sanitized_str, "\"");
     bool is_in_quote = false;
     std::string current_part;
-    for (auto it = sanitized_str.begin(); it != sanitized_str.end(); it++) {
+    for (auto it = sanitized_str.begin(); it != sanitized_str.end();) {
         char c = *it;
         if (c == '"') {
             // Quote at the beginning of the string, change quote mode to true immediately
             if (it == sanitized_str.begin()) {
                 is_in_quote = true;
+                it++;
                 continue;
             }
             auto last_char = *(it - 1);
             // Quote has escaped, that mean add the quote to the current part
             if (last_char == '\\') {
                 current_part += c;
+                it++;
                 continue;
             }
             // Quote has not escaped, toggle quote mode
             is_in_quote = !is_in_quote;
+            it++;
             continue;
         }
-        if (c == delim) {
+
+        size_t pos = std::distance(sanitized_str.begin(), it);
+        if ((sanitized_str.compare(pos, delim.length(), delim) == 0)) {
             // Delim is added to the current part if we are in a quote, that's what double quote are for!
             if (is_in_quote) {
-                current_part += c;
+                current_part += delim;
+                it += delim.length();
                 continue;
             }
             DebugLogger::print("Adding part \"", current_part, "\" to the result vector");
             vec.push_back(current_part);
             current_part.clear();
+            it += delim.length();
             continue;
         }
         // Otherwise, just add the character to the current part
         current_part += c;
+        it++;
     }
     // At the end of the loop, if we are in a quote, that means the command is not properly quoted
     // return false and an empty vector

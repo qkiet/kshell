@@ -18,7 +18,7 @@ int parse_commands_string_and_execute(const std::string &commands_string, bool &
         return EINVAL;
     }
     DebugLogger::print("Executing command \"", commands_string, "\"");
-    auto [properly_quoted_result, command_parts] = split_command_into_parts(commands_string);
+    auto [properly_quoted_result, command_parts] = split_string_into_parts(commands_string, " ");
     if (!properly_quoted_result) {
         DebugLogger::error("Command is not properly quoted");
         properly_quoted = false;

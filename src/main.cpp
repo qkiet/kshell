@@ -78,7 +78,7 @@ void run_sub_command(const CommandLineOptions &options) {
         exit(ENOENT);
     }
     DebugLogger::print("exec: ", absolute_executable_path, " (from \"", executable, "\")");
-    auto [properly_quoted, command_args] = split_command_into_parts(options.sub_command);
+    auto [properly_quoted, command_args] = split_string_into_parts(options.sub_command, " ");
     if (!properly_quoted) {
         std::cerr << "Command is not properly quoted" << std::endl;
         exit(EINVAL);
