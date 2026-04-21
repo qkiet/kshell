@@ -11,3 +11,20 @@ TEST(SyscallCppWrapperTest, ExecvCppWrapper) {
     EXPECT_EQ(ret, 0);
     EXPECT_EQ(status, 0);
 }
+
+TEST(SyscallCppWrapperTest, ExecutePipedCommands) {
+    int status;
+    int ret;
+    ret = execute_piped_commands(std::vector<std::tuple<std::string, std::vector<std::string>>>(), &status);
+    EXPECT_EQ(ret, EINVAL);
+    ret = execute_piped_commands(std::vector<std::tuple<std::string, std::vector<std::string>>>({
+        {"/usr/bin/ls", std::vector<std::string>()},
+    }), &status);
+    EXPECT_EQ(ret, EINVAL);
+    ret = execute_piped_commands(std::vector<std::tuple<std::string, std::vector<std::string>>>({
+        {"/usr/bin/ls", std::vector<std::string>()},
+        {"/usr/bin/xargs", std::vector<std::string>()},
+    }), &status);
+    EXPECT_EQ(ret, 0);
+    EXPECT_EQ(status, 0);
+}
